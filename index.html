@@ -1,362 +1,132 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FreshSupply | Hassan</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    *{box-sizing:border-box}
-    body{font-family:Arial,sans-serif;margin:0;background:#f3f8f0;color:#203528}
-    header{background:#167443;color:white;padding:22px 16px;text-align:center}
-    header h1{margin:0 0 6px}
-    main{max-width:760px;margin:auto;padding:15px}
-    .panel{background:white;padding:16px;border-radius:14px;margin:12px 0;box-shadow:0 2px 8px #0001}
-    h2{margin-top:0;font-size:20px}
-    input,select,textarea,button{width:100%;padding:12px;margin:6px 0;border-radius:8px;border:1px solid #ccd6cc;font-size:16px}
-    button{background:#167443;color:white;border:0;font-weight:bold;cursor:pointer}
-    button.secondary{background:#e7f3e9;color:#145c35}
-    .product{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #eee;padding:10px 0}
-    .product button{width:auto;padding:9px 15px}
-    .price{font-weight:bold;color:#167443}
-    .muted{color:#657468;font-size:13px}
-    .hidden{display:none}
-    .row{display:flex;gap:8px}
-    .row>*{flex:1;min-width:0}
-    #message{padding:10px;border-radius:8px}
-  </style>
-</head>
-<body>
-<header>
-  <h1>🥬 FreshSupply</h1>
-  <div>Fresh vegetables, fruits and groceries</div>
-  <div>Delivery in Hassan city, Karnataka</div>
-</header>
+<!-- FreshSupply Customer Authentication -->
+<section id="fs-auth" style="max-width:420px;margin:30px auto;padding:22px;border:1px solid #ddd;border-radius:16px;font-family:Arial,sans-serif;background:#fff;color:#222">
+  <h2 style="color:#218838;margin-top:0">FreshSupply Account</h2>
+  <p>Sign in or create an account to order fresh vegetables.</p>
 
-<main>
-  <div class="panel">
-    <h2>Welcome to FreshSupply</h2>
-    <p>Order fresh products from your phone.</p>
-    <p class="muted">ತಾಜಾ ತರಕಾರಿಗಳು ಮತ್ತು ಹಣ್ಣುಗಳು — ಹಾಸನ ನಗರದಲ್ಲಿ.</p>
-    <div id="connection" class="muted">Connecting...</div>
+  <label for="fs-email">Email address</label>
+  <input id="fs-email" type="email" autocomplete="email"
+    placeholder="you@example.com" required
+    style="display:block;box-sizing:border-box;width:100%;padding:12px;margin:8px 0 16px">
+
+  <label for="fs-password">Password</label>
+  <input id="fs-password" type="password"
+    autocomplete="current-password" minlength="6"
+    placeholder="At least 6 characters" required
+    style="display:block;box-sizing:border-box;width:100%;padding:12px;margin:8px 0 16px">
+
+  <button id="fs-signup" type="button"
+    style="width:100%;padding:12px;background:#218838;color:white;border:0;border-radius:8px;margin-bottom:10px">
+    Create Account
+  </button>
+
+  <button id="fs-signin" type="button"
+    style="width:100%;padding:12px;background:#fff;color:#218838;border:1px solid #218838;border-radius:8px">
+    Sign In
+  </button>
+
+  <p id="fs-message" role="status" aria-live="polite"></p>
+  <div id="fs-account" hidden>
+    <p id="fs-user"></p>
+    <button id="fs-signout" type="button">Sign Out</button>
   </div>
+</section>
 
-  <div class="panel">
-    <h2>🛒 Shop products</h2>
-    <select id="category" onchange="renderProducts()">
-      <option value="All">All products</option>
-      <option value="Vegetables">Vegetables</option>
-      <option value="Fruits">Fruits</option>
-      <option value="Groceries">Groceries</option>
-    </select>
-    <div id="products">Loading products...</div>
-  </div>
-
-  <div class="panel">
-    <h2>🧺 Your basket</h2>
-    <div id="basket">Your basket is empty.</div>
-    <h3 id="total">Total: ₹0</h3>
-  </div>
-
-  <div class="panel">
-    <h2>📦 Place your order</h2>
-    <form id="orderForm">
-      <input id="customerName" placeholder="Your full name" required>
-      <input id="phone" type="tel" placeholder="Mobile number" required>
-      <textarea id="address" placeholder="Delivery address in Hassan city" required></textarea>
-      <button type="button" class="secondary" onclick="getLocation()">📍 Share my location</button>
-      <div id="locationText" class="muted">Location not shared.</div>
-      <div class="row">
-        <button type="button" class="secondary" onclick="openMap()">Open map</button>
-        <button type="button" class="secondary" onclick="clearLocation()">Clear location</button>
-      </div>
-      <select id="payment">
-        <option value="Cash on Delivery">Cash on Delivery</option>
-        <option value="UPI on delivery">UPI on delivery (pay directly)</option>
-      </select>
-      <button type="submit">Place order</button>
-    </form>
-    <p class="muted">UPI selection does not collect payment inside this website. Confirm payment directly with the delivery person.</p>
-    <div id="message" role="status"></div>
-  </div>
-
-  <div class="panel">
-    <h2>🔐 Owner / Admin</h2>
-    <p class="muted">Sign in with the owner account created in Supabase Authentication.</p>
-    <form id="loginForm">
-      <input id="adminEmail" type="email" placeholder="Owner email" required>
-      <input id="adminPassword" type="password" placeholder="Password" required>
-      <button type="submit">Owner login</button>
-    </form>
-    <button class="secondary" onclick="logout()">Logout</button>
-    <div id="adminPanel" class="hidden">
-      <h3>Incoming orders</h3>
-      <button onclick="loadOrders()">Refresh orders</button>
-      <div id="orders">Sign in to view orders.</div>
-      <h3>Product prices</h3>
-      <p class="muted">Choose a product and set its price in rupees.</p>
-      <select id="priceProduct"></select>
-      <input id="newPrice" type="number" min="1" step="0.5" placeholder="New price in ₹">
-      <button onclick="updatePrice()">Update price</button>
-    </div>
-    <div id="adminMessage" class="muted"></div>
-  </div>
-
-  <p class="muted">FreshSupply • Hassan, Karnataka</p>
-</main>
-
+<!-- Supabase JavaScript library -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = "https://suuowvaibsqaqxrxerwq.supabase.co/rest/v1/";
-const SUPABASE_KEY = "sb_publishable_34JpBX21fVeDE8HyLEPf_w_ZNTQch06";
-const OWNER_EMAIL = "suprithpreetu90@gmail.com";
+(() => {
+  // Use your EXISTING Supabase project URL and publishable key.
+  const SUPABASE_URL = "PASTE_YOUR_EXISTING_PROJECT_URL";
+  const SUPABASE_PUBLISHABLE_KEY = "PASTE_YOUR_EXISTING_PUBLISHABLE_KEY";
 
-let db = null;
-let products = [];
-let basket = {};
-let locationUrl = "";
+  const message = document.getElementById("fs-message");
+  const emailInput = document.getElementById("fs-email");
+  const passwordInput = document.getElementById("fs-password");
+  const account = document.getElementById("fs-account");
+  const userText = document.getElementById("fs-user");
 
-const starterProducts = [
-  {id:1,name:"Tomato",name_kn:"ಟೊಮೇಟೊ",category:"Vegetables",emoji:"🍅",price:30,unit:"kg",active:true},
-  {id:2,name:"Potato",name_kn:"ಆಲೂಗಡ್ಡೆ",category:"Vegetables",emoji:"🥔",price:35,unit:"kg",active:true},
-  {id:3,name:"Onion",name_kn:"ಈರುಳ್ಳಿ",category:"Vegetables",emoji:"🧅",price:40,unit:"kg",active:true},
-  {id:4,name:"Carrot",name_kn:"ಕ್ಯಾರೆಟ್",category:"Vegetables",emoji:"🥕",price:50,unit:"kg",active:true},
-  {id:5,name:"Beans",name_kn:"ಬೀನ್ಸ್",category:"Vegetables",emoji:"🫛",price:60,unit:"kg",active:true},
-  {id:6,name:"Banana",name_kn:"ಬಾಳೆಹಣ್ಣು",category:"Fruits",emoji:"🍌",price:50,unit:"dozen",active:true},
-  {id:7,name:"Apple",name_kn:"ಸೇಬು",category:"Fruits",emoji:"🍎",price:150,unit:"kg",active:true},
-  {id:8,name:"Orange",name_kn:"ಕಿತ್ತಳೆ",category:"Fruits",emoji:"🍊",price:80,unit:"kg",active:true},
-  {id:9,name:"Rice",name_kn:"ಅಕ್ಕಿ",category:"Groceries",emoji:"🍚",price:60,unit:"kg",active:true},
-  {id:10,name:"Sugar",name_kn:"ಸಕ್ಕರೆ",category:"Groceries",emoji:"🛍️",price:45,unit:"kg",active:true}
-];
-
-function showMessage(text, isError=false) {
-  const el=document.getElementById("message");
-  el.textContent=text;
-  el.style.background=isError?"#ffe7e7":"#e5f6e8";
-  el.style.color=isError?"#8b1717":"#145c35";
-}
-
-function money(value) {
-  return "₹"+Number(value).toFixed(2);
-}
-
-function init() {
-  if (SUPABASE_URL.startsWith("PASTE_") ||
-      SUPABASE_KEY.startsWith("PASTE_")) {
-    products=starterProducts;
-    document.getElementById("connection").textContent=
-      "Demo mode: add your Supabase URL and publishable key to connect orders.";
-    renderProducts();
-    renderBasket();
+  if (!window.supabase ||
+      SUPABASE_URL.startsWith("PASTE_") ||
+      SUPABASE_PUBLISHABLE_KEY.startsWith("PASTE_")) {
+    message.textContent = "Setup incomplete: add your existing Supabase URL and publishable key.";
     return;
   }
 
-  try {
-    db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-    document.getElementById("connection").textContent="Connected to Supabase; loading products...";
-    loadProducts();
-    db.auth.onAuthStateChange((_event,session)=>{
-      const signedIn=!!session && session.user.email?.toLowerCase()===OWNER_EMAIL.toLowerCase();
-      document.getElementById("adminPanel").classList.toggle("hidden",!signedIn);
-      if(signedIn) loadOrders();
+  const client = window.supabase.createClient(
+    SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
+  );
+
+  function showMessage(text) {
+    message.textContent = text;
+  }
+
+  function getCredentials() {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || !password || password.length < 6) {
+      showMessage("Enter a valid email and a password of at least 6 characters.");
+      return null;
+    }
+    return { email, password };
+  }
+
+  document.getElementById("fs-signup").addEventListener("click", async () => {
+    const credentials = getCredentials();
+    if (!credentials) return;
+
+    showMessage("Creating your account...");
+    const { data, error } = await client.auth.signUp({
+      ...credentials,
+      options: {
+        emailRedirectTo: window.location.href.split("#")[0]
+      }
     });
-  } catch(e) {
-    document.getElementById("connection").textContent="Connection setup error. Check your Supabase settings.";
-  }
-}
 
-async function loadProducts() {
-  if(!db) return;
-  const {data,error}=await db.from("products")
-    .select("id,name,name_kn,category,emoji,price,unit,active")
-    .eq("active",true).order("name");
-  if(error) {
-    document.getElementById("connection").textContent="Could not load products: "+error.message;
-    products=starterProducts;
-  } else {
-    products=data || [];
-    if(!products.length) products=starterProducts;
-    document.getElementById("connection").textContent="Products loaded from FreshSupply.";
-  }
-  renderProducts();
-  renderBasket();
-  fillPriceProducts();
-}
+    if (error) {
+      showMessage(error.message);
+    } else if (data.session) {
+      showMessage("Account created successfully.");
+    } else {
+      showMessage("Check your email for the confirmation link, then sign in.");
+    }
+  });
 
-function renderProducts() {
-  const category=document.getElementById("category").value;
-  const list=products.filter(p=>category==="All"||p.category===category);
-  document.getElementById("products").innerHTML=list.map(p=>`
-    <div class="product">
-      <div><strong>${escapeHtml(p.emoji||"🥬")} ${escapeHtml(p.name)}</strong>
-      <div class="muted">${escapeHtml(p.name_kn||"")}</div>
-      <div class="price">${money(p.price)} / ${escapeHtml(p.unit||"kg")}</div></div>
-      <button onclick="addItem(${Number(p.id)})">Add +</button>
-    </div>`).join("") || "No products found.";
-}
+  document.getElementById("fs-signin").addEventListener("click", async () => {
+    const credentials = getCredentials();
+    if (!credentials) return;
 
-function escapeHtml(value) {
-  return String(value??"").replace(/[&<>"']/g,c=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
-}
+    showMessage("Signing in...");
+    const { error } = await client.auth.signInWithPassword(credentials);
 
-function addItem(id) {
-  basket[id]=(basket[id]||0)+1;
-  renderBasket();
-}
+    if (error) {
+      showMessage(error.message);
+    } else {
+      showMessage("Signed in successfully.");
+    }
+  });
 
-function changeQty(id,delta) {
-  basket[id]=(basket[id]||0)+delta;
-  if(basket[id]<=0) delete basket[id];
-  renderBasket();
-}
+  document.getElementById("fs-signout").addEventListener("click", async () => {
+    const { error } = await client.auth.signOut();
+    showMessage(error ? error.message : "You have signed out.");
+  });
 
-function getBasketItems() {
-  return Object.entries(basket).map(([id,qty])=>{
-    const p=products.find(x=>Number(x.id)===Number(id));
-    return p?{id:p.id,name:p.name,price:Number(p.price),unit:p.unit,qty}:null;
-  }).filter(Boolean);
-}
+  client.auth.onAuthStateChange((_event, session) => {
+    account.hidden = !session;
+    if (session) {
+      userText.textContent = "Signed in as " + session.user.email;
+    }
+  });
 
-function renderBasket() {
-  const items=getBasketItems();
-  document.getElementById("basket").innerHTML=items.length?items.map(i=>`
-    <div class="product"><span>${escapeHtml(i.name)} × ${i.qty}</span>
-    <span>${money(i.price*i.qty)}
-    <button class="secondary" onclick="changeQty(${Number(i.id)},-1)">−</button>
-    <button onclick="changeQty(${Number(i.id)},1)">+</button></span></div>`).join(""):"Your basket is empty.";
-  document.getElementById("total").textContent="Total: "+money(items.reduce((s,i)=>s+i.price*i.qty,0));
-}
-
-function getLocation() {
-  if(!navigator.geolocation) {
-    showMessage("Location is not supported by this browser.",true);
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    locationUrl=`https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
-    document.getElementById("locationText").textContent="Location captured. Submit your order to share it.";
-  },()=>{
-    showMessage("Location unavailable. Allow location permission or enter your address.",true);
-  },{enableHighAccuracy:true,timeout:15000});
-}
-
-function openMap() {
-  if(locationUrl) window.open(locationUrl,"_blank");
-  else window.open("https://www.openstreetmap.org/search?query=Hassan%20Karnataka","_blank");
-}
-
-function clearLocation() {
-  locationUrl="";
-  document.getElementById("locationText").textContent="Location not shared.";
-}
-
-document.getElementById("orderForm").addEventListener("submit",async e=>{
-  e.preventDefault();
-  const items=getBasketItems();
-  if(!items.length) return showMessage("Please add products to your basket.",true);
-  if(!db) return showMessage("Demo mode only. Add your Supabase settings before placing real orders.",true);
-
-  const customerName=document.getElementById("customerName").value.trim();
-  const phone=document.getElementById("phone").value.trim();
-  const address=document.getElementById("address").value.trim();
-  const payment=document.getElementById("payment").value;
-  const total=items.reduce((s,i)=>s+i.price*i.qty,0);
-
-  showMessage("Submitting your order...");
-  const {error}=await db.from("orders").insert([{
-    customer_name:customerName,phone,address,location_url:locationUrl,
-    payment,items,total,status:"New"
-  }]);
-  if(error) {
-    showMessage("Order not saved: "+error.message,true);
-    return;
-  }
-  basket={};
-  renderBasket();
-  e.target.reset();
-  clearLocation();
-  showMessage("Order placed! FreshSupply will contact you to confirm delivery.");
-});
-
-document.getElementById("loginForm").addEventListener("submit",async e=>{
-  e.preventDefault();
-  if(!db) return document.getElementById("adminMessage").textContent="Connect Supabase first.";
-  const email=document.getElementById("adminEmail").value.trim();
-  const password=document.getElementById("adminPassword").value;
-  if(email.toLowerCase()!==OWNER_EMAIL.toLowerCase()) {
-    document.getElementById("adminMessage").textContent="This email is not the configured owner email.";
-    return;
-  }
-  const {error}=await db.auth.signInWithPassword({email,password});
-  document.getElementById("adminMessage").textContent=error?error.message:"Signed in.";
-});
-
-async function logout() {
-  if(db) await db.auth.signOut();
-  document.getElementById("adminPanel").classList.add("hidden");
-  document.getElementById("adminMessage").textContent="Logged out.";
-}
-
-async function loadOrders() {
-  if(!db) return;
-  const {data,error}=await db.from("orders").select("*").order("created_at",{ascending:false}).limit(50);
-  const el=document.getElementById("orders");
-  if(error) {
-    el.textContent="Could not load orders: "+error.message;
-    return;
-  }
-  if(!data?.length) {
-    el.textContent="No orders yet.";
-    return;
-  }
-  el.innerHTML=data.map(o=>`
-    <div class="panel">
-      <strong>Order #${Number(o.id)} — ${money(o.total)}</strong>
-      <p>${escapeHtml(o.customer_name)} • ${escapeHtml(o.phone)}</p>
-      <p>${escapeHtml(o.address)}</p>
-      <p>Payment: ${escapeHtml(o.payment)} • Status: ${escapeHtml(o.status)}</p>
-      <p>${(Array.isArray(o.items)?o.items:[]).map(i=>`${escapeHtml(i.name)} × ${Number(i.qty)}`).join(", ")}</p>
-      ${o.location_url?`<p><a href="${escapeHtml(o.location_url)}" target="_blank" rel="noopener">Open customer location</a></p>`:""}
-      <select id="status-${Number(o.id)}">
-        ${["New","Confirmed","Preparing","Out for delivery","Delivered","Cancelled"].map(s=>`<option ${s===o.status?"selected":""}>${s}</option>`).join("")}
-      </select>
-      <button onclick="updateStatus(${Number(o.id)})">Update status</button>
-    </div>`).join("");
-}
-
-async function updateStatus(id) {
-  const status=document.getElementById("status-"+id).value;
-  const {error}=await db.from("orders").update({status}).eq("id",id);
-  document.getElementById("adminMessage").textContent=error?"Update failed: "+error.message:"Order status updated.";
-  if(!error) loadOrders();
-}
-
-function fillPriceProducts() {
-  const select=document.getElementById("priceProduct");
-  if(!select) return;
-  select.innerHTML=products.map(p=>`<option value="${Number(p.id)}">${escapeHtml(p.name)} — ${money(p.price)}</option>`).join("");
-}
-
-async function updatePrice() {
-  if(!db) return;
-  const id=Number(document.getElementById("priceProduct").value);
-  const price=Number(document.getElementById("newPrice").value);
-  if(!Number.isFinite(price)||price<=0) {
-    document.getElementById("adminMessage").textContent="Enter a valid price.";
-    return;
-  }
-  const {error}=await db.from("products").update({price}).eq("id",id);
-  document.getElementById("adminMessage").textContent=error?"Price update failed: "+error.message:"Price updated.";
-  if(!error) {
-    document.getElementById("newPrice").value="";
-    await loadProducts();
-  }
-}
-
-init();
+  client.auth.getSession().then(({ data, error }) => {
+    if (error) showMessage(error.message);
+    else {
+      account.hidden = !data.session;
+      if (data.session) {
+        userText.textContent = "Signed in as " + data.session.user.email;
+      }
+    }
+  });
+})();
 </script>
-</body>
-        </html>
-        
